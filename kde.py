@@ -5,11 +5,25 @@ from sklearn.neighbors import KernelDensity
 import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
 
 
 def determine_center_of_mass(xx, yy, f):
+    """
+    Determines the coordinates of the center of mass for a given density function.
+
+    This function identifies the grid point(s) where the density function 'f' reaches its maximum value.
+    It then extracts the corresponding x and y coordinates from the grid arrays 'xx' and 'yy'. The
+    function assumes that the center of mass is located at these maximum value points.
+
+    Parameters:
+    xx (numpy.ndarray): A 2D array representing the grid's x-coordinates.
+    yy (numpy.ndarray): A 2D array representing the grid's y-coordinates.
+    f (numpy.ndarray): A 2D array representing the density values on the grid.
+
+    Returns:
+    tuple: Two arrays containing the x and y coordinates of the center of mass. If there are multiple
+           maximum points, the function returns arrays of coordinates for all these points.
+    """
     x, y = np.where(f == np.amax(f))
     x = xx[x, 0]
     y = yy[0, y]
@@ -110,7 +124,7 @@ def calculate_kernel_density(component1, component2, xx, yy, mode="stats"):
     return z, xx, yy
 
 
-def sns_control_learner_together(dataset_path: str, path_to_save: str = None):
+def sns_kd(dataset_path: str):
     """
         Creates kernel density plots for different clusters and groups in a dataset.
 
@@ -118,14 +132,11 @@ def sns_control_learner_together(dataset_path: str, path_to_save: str = None):
         and plots these estimates. It also calculates the center of mass for each group and draws arrows
         from the center to the mass center. The plots can optionally be saved to SVG files.
 
-        Parameters:
-        save_to_file (bool, optional): Whether to save the plots to files. Defaults to False.
-
         Returns:
         None
 
         Notes:
-            This function expects Principal component 1, Principal component 2, Group and Clusters columns in
+            This function expects Principal component 1, Principal component 2, Group and Cluster columns in
             the dataset.
             The quality of the resulting plots depends on your data, feel free to adjust the different parameters
     """
@@ -134,7 +145,6 @@ def sns_control_learner_together(dataset_path: str, path_to_save: str = None):
     xmax = df["Principal component 1"].max()
     ymin = df["Principal component 2"].min()
     ymax = df["Principal component 2"].max()
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 
     group_cl_df = pd.DataFrame(columns=["Type", "Group", "Cluster", "X", "Y"])
     for group in sorted(df["Group"].unique()):
@@ -166,22 +176,18 @@ def sns_control_learner_together(dataset_path: str, path_to_save: str = None):
                                      pd.DataFrame([["mass", group, cluster, x, y]],
                                                   columns=["Type", "Group", "Cluster", "X", "Y"])],
                                     axis=0, ignore_index=True)
-
-    for cluster in sorted(df["Clusters"].unique()):
-        cluster_df = df[df["Clusters"] == cluster]
-        for group in sorted(cluster_df["Group"].unique()):
-            df_group_cluster = cluster_df[cluster_df["Group"] == group]
-            Blues = cm.get_cmap("Blues", 12)
-            Reds = cm.get_cmap("Reds", 12)
-            col = ListedColormap(Reds(np.linspace(0.5, 1, 5))) if "Learners" in group else \
-                ListedColormap(Blues(np.linspace(0.5, 1, 5)))
-
+    for group in sorted(df["Group"].unique()):
+        df_group = df[df["Group"] == group]
+        col = "Reds" if "Learners" in group else "Blues"
+        for cluster in sorted(df_group["Clusters"].unique()):
+            df_group_cluster = df_group[df_group["Clusters"] == cluster]
             ax = sns.kdeplot(x='Principal component 1', y='Principal component 2',
-                             data=df_group_cluster, fill=False,
-                             levels=4, multiple="stack", common_norm=False,
                              cmap=col,
+                             data=df_group_cluster,
+                             levels=4,
+                             common_norm=True,
+                             joint_kws={"colors": "black", "cmap": None, "linewidths": 0.5}
                              )
-
             arrow_x_base = \
                 group_cl_df[(group_cl_df["Type"] == "center") & (group_cl_df["Cluster"] == cluster)]["X"].iloc[0]
             arrow_x_end = \
@@ -201,11 +207,5 @@ def sns_control_learner_together(dataset_path: str, path_to_save: str = None):
 
         plt.xlim([xmin, xmax])
         plt.ylim([ymin, ymax])
-        ax.set(xlabel=None)
-        ax.set(ylabel=None)
-
-        if path_to_save:
-            plt.savefig(path_to_save,
-                        dpi=300, bbox_inches='tight', pad_inches=0.0)
 
         plt.show()
