@@ -1,9 +1,28 @@
+# Spine reconstruction and analysis pipeline
+
+This project is the code used for the analysis of the paper : Distinct forms of structural plasticity of adult-born interneuron spines induced by different odor learning paradigms. Available here : https://www.biorxiv.org/content/10.1101/2023.07.20.549882v1
+The reconstruction pipeline as well as the analysis pipeline was used to study dendritic spines but feel free to test it on your data. Please, if you use this code, cite us :
+```
+ Distinct forms of structural plasticity of adult-born interneuron spines induced by different odor learning paradigms
+Aymeric Ferreira, Vlad-Stefan Constantinescu, Sarah Malvaut, Armen Saghatelyan, Simon V. Hardy
+bioRxiv 2023.07.20.549882; doi: https://doi.org/10.1101/2023.07.20.549882 
+```
+
+# Table of Contents
+1. [Install](#Install)
+2. [Deconvolution](#Deconvolution)
+3. [Segmentation](#Segmentation)
+4. [3D reconstruction](#3D-reconstruction)
+5. [Extraction of the spines](#Extraction-of-the-spines)
+6. [Analysis of the spines](#Analysis-of-the-spines)
+7. [Analysis pipeline](#Analysis-pipeline)
+8. [Notes](#Notes)
+
 # Install
 
-The package can requires the installation of pyimageJ for the deconvolution. In this case follow the instruction of the 
-official website : https://github.com/imagej/pyimagej
-If you want to skip the deconvolution part or will use directly ImageJ, or you installed pyimagej, you can install the remaining requirements with pip :
-If you need help installing python you can follow the instructions of our previous project : https://github.com/SaghatelyanLab/clusterAnalysis
+This package may require installing PyImageJ for the deconvolution process. If needed, follow the instructions on the official website : https://github.com/imagej/pyimagej
+
+ If you prefer to skip deconvolution, plan to use ImageJ directly, or have installed PyImageJ, you can install the remaining requirements via pip. For guidance on installing Python, refer to our previous project:  https://github.com/SaghatelyanLab/clusterAnalysis
 
 
 ```bash
@@ -12,11 +31,10 @@ pip install -r requirements.txt
 
 # Deconvolution
 
-Images can be deconvolve. We included the FIJI version with Iterative Deconvolve 3D plugin already install. 
-Start FIJI, open the image you want to deconvolve, and run the plugin.
+This package allows for the deconvolution of images. We have included the FIJI version with the Iterative Deconvolve 3D plugin pre-installed. To use it, open your image in FIJI and run the plugin. Alternatively, the **deconvolve_folder** method in **deconvolution_segmentation.py** can be used, but it requires correctly binding Maven and JAVA to PyImageJ. For more information, refer to the https://py.imagej.net/en/latest/Troubleshooting.html#jgo-jgo-executablenotfound-mvn-not-found-on-path
 ![FIJI plugin](github_images/fiji_plugin.png)
 
-You can also use the method deconvolve_folder from deconvolution_segmentation.py however you will need to correctly bind maven JAVA to pyimagej. More information is available in the official documentation : https://py.imagej.net/en/latest/Troubleshooting.html#jgo-jgo-executablenotfound-mvn-not-found-on-path
+Below are examples of images before and after deconvolution:
 
 Image without deconvolution :
 
@@ -28,8 +46,7 @@ Image with deconvolution :
 
 # Segmentation
 
-Put your images in the folder Images, and run the script deconvolution_segmentation.py. You can change the parameters in the file. There is 3 parameters that can be adjusted depending on your images according to : https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_chan_vese.html
-We noticed that for single spine images, the best parameters for use were mu = 1, lambda1 = 1 and lambda2 = 4. For full confocal images, mu = 1, lambda1 = 1 and lambda2 = 9 were the best.
+Place your images in the **Images** folder and run deconvolution_segmentation.py. Adjust the parameters in the file as needed. The best parameters for single spine images were found to be **mu = 1**, **lambda1 = 1**, **lambda2 = 4**. For full confocal images, **mu = 1**, **lambda1 = 1**, **lambda2 = 9** yielded the best results.
 
 Segmented image : 
 
@@ -37,7 +54,7 @@ Segmented image :
 
 # 3D reconstruction
 
-The script 3D_reconstruction.py will reconstruct the 3D image from the Segmented image folder. The script will create several meshes in Mesh folder. The best value for parameter for level_threshold is difficult to estimate, and will depend on the signal-to-noise ratio of your images and the strength of the signal for your spine neck. For our images, the best results were found for parameter between 10 and 20.
+The **3D_reconstruction.py** script reconstructs 3D images from the **Segmented** image folder, creating several meshes in the Mesh folder. The optimal **level_threshold** value depends on your image's signal-to-noise ratio and the strength of the spine neck signal. For our images, parameters between 10 and 20 provided the best results.
 
 ![3D reconstruction](github_images/3D_reconstruction00.png)
 
@@ -47,27 +64,24 @@ To extract the dendritic spines from the dendrite we used meshlab. You can downl
 
 # Analysis of the spines
 
-After extraction, put your spines in the Spines folder and run the script metrics.py. The script will create a csv file with the metrics for each spine. The script will create a csv file with the metrics for each spine. The metrics are :
-- Length: the length of the spine
-- Volume : the volume of the spine
-- Surface : the surface of the spine
-- Hull volume : the volume of the convex hull of the spine
-- Hull ratio : the ratio between the volume of the spine - the volume of the convex hull by the Volume of the spine
-- Average distance : the average distance between the spine and the convex hull
-- CVD : the coefficient of variation of the distance between the edges of the spine and the spine base center
-- Open angle : the angle between the spine normal and the different vertices of the spine
+After extraction, place your spines in the **Spines** folder and run **metrics.py**. The script calculates and outputs metrics for each spine in a CSV file. These metrics include Length, Volume, Surface, Hull Volume, Hull Ratio, Average Distance, CVD, and Open Angle.
+- **Length**: the length of the spine
+- **Volume** : the volume of the spine
+- **Surface** : the surface of the spine
+- **Hull volume** : the volume of the convex hull of the spine
+- **Hull ratio** : the ratio between the volume of the spine - the volume of the convex hull by the Volume of the spine
+- **Average distance** : the average distance between the spine and the convex hull
+- **CVD** : the coefficient of variation of the distance between the edges of the spine and the spine base center
+- **Open angle** : the angle between the spine normal and the different vertices of the spine
 
-Several metrics could be added to this list, and we encourage you to add them if you need them.
-
+Users can add easily add metrics if needed.
 
 # Analysis pipeline 
 
 The analysis pipeline is similar to our previously published work : https://github.com/SaghatelyanLab/clusterAnalysis
-We added a script (kde.py) to generate the Kernel Density Estimation (KDE) and a script (piecharts.py) to generate the piecharts and the related statistical tests.
+We added scripts (**kde.py** and **piecharts.py**) for generating Kernel Density Estimation (KDE) graphs, pie charts, and associated statistical tests.
 
 # Notes :
 
-- PyimageJ have heavy requirements and ask for installation of conda/mamba and is limited to python 3.8, if you want to perform deconvolution you can also use imageJ with the Iterative Deconvolve 3D : https://imagej.net/plugins/iterative-deconvolve-3d that can be run on imageJ <= 1.52p
-
-- The original morphsnakes.py suffers from a deprecation warning because of the changes to numpy >1.22, 
-VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is removed. morphsnakes could maybe be updated, for the moment requirements requires numpy <1.23. Note that we propose a modification of morphsnakes.py to avoid this warning.
+- PyimageJ has specific system requirements, including the installation of conda/mamba, and it currently supports only up to Python 3.8.  For users looking to perform deconvolution tasks, an alternative approach is to utilize ImageJ with the Iterative Deconvolve 3D plugin, available here : https://imagej.net/plugins/iterative-deconvolve-3d . This plugin is compatible with versions of ImageJ up to 1.52p, a working version of FIJI is included in this repo.
+- Additionally, it's important to note that the original morphsnakes.py script has compatibility issues with newer versions of numpy (specifically versions above 1.22), leading to deprecation warnings. The warning in question, VisibleDeprecationWarning, is triggered by creating an ndarray from sequences of varying lengths or shapes. Currently, to avoid these issues, it is recommended to use numpy versions below 1.23. However, we have proposed a modification to morphsnakes.py to address this warning and enhance compatibility with newer numpy versions.

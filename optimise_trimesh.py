@@ -6,6 +6,7 @@ import pathlib
 from subprocess import DEVNULL, STDOUT, check_call
 import pymeshlab as ml
 
+
 def smoothing_via_pymeshlab(mesh_filename, laplacien=1):
     if not mesh_filename.exists():
         return
@@ -87,7 +88,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
         ms, mesh_filename, output_mesh_filename
     )
     if new_simplified_mesh := remove_small_meshes_from_path(
-        output_mesh_filename
+            output_mesh_filename
     ):
         new_simplified_mesh.export(
             pathlib.Path(
@@ -135,7 +136,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
         )
         if output_mesh_filename.exists():
             if new_simplified_mesh := remove_small_meshes_from_path(
-                output_mesh_filename
+                    output_mesh_filename
             ):
                 new_simplified_mesh.export(
                     pathlib.Path(
