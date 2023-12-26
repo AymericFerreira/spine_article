@@ -1,12 +1,8 @@
 import sys
 import os
 
-# print(os.environ["JAVA_HOME"])
-# os.environ["JAVA_HOME"] = "C:\Program Files\Java\jdk-14.0.2\\bin"
-# print(os.environ["JAVA_HOME"])
-
 import numpy as np
-from skimage import measure, io
+from skimage import measure
 import tifffile
 import trimesh
 import pathlib
@@ -19,60 +15,23 @@ import czifile
 
 NUMBA_DEBUG = 0
 
-try:
-    import pymesh
-    pymeshVariable = True
-except ImportError:
-    pymeshVariable = False
-if pymeshVariable:
-    import optimise
-
 np.set_printoptions(threshold=sys.maxsize)  # variable output
 
 
-def construct_mesh_from_lewiner(imageStack, spacingData, levelThreshold):
+def construct_mesh_from_Lewiner_trimesh(image_stack, spacing_data, level_threshold):
     """
-        Lewiner marching cubes algorithm using skimage.measure.marching_cubes_lewiner to find surfaces in 3d volumetric data.
-
-        Convert an imagestack to a pymesh Mesh object
-
-        :param imageStack: (M, N, P) array
-        Volume data aka each stack of an  image to find isosurfaces
-        :param spacingData: (3) list
-        Information about the image properties, size of voxel z, x, y
-        Note that you should correct Z-axis depending of medium refraction index
-        :param levelThreshold: float
-        Contour value to search for isosurfaces
-
-        :return:
-        A pymesh Mesh object
-    """
-    if levelThreshold is None:
-        vertices, faces, normals, values = measure.marching_cubes(imageStack,
-                                                                  spacing=spacingData,
-                                                                  allow_degenerate=False)
-    else:
-        vertices, faces, normals, values = measure.marching_cubes(imageStack,
-                                                                  level=float(levelThreshold),
-                                                                  spacing=spacingData,
-                                                                  allow_degenerate=False)
-
-    return pymesh.form_mesh(vertices, faces)
-
-
-def construct_mesh_from_lewiner_trimesh(imageStack, spacingData, levelThreshold):
-    """
-        Lewiner marching cubes algorithm using skimage.measure.marching_cubes_lewiner to find surfaces in 3d volumetric data.
+        Lewiner marching cubes algorithm using skimage.measure.marching_cubes_lewiner to find
+        surfaces in 3d volumetric data.
 
         Convert an imagestack to a trimesh Mesh object
         The objective of this function is to replace pymesh one
 
-        :param imageStack: (M, N, P) array
+        :param image_stack: (M, N, P) array
         Volume data aka each stack of an  image to find isosurfaces
-        :param spacingData: (3) list
+        :param spacing_data: (3) list
         Information about the image properties, size of voxel z, x, y
         Note that you should correct Z-axis depending of medium refraction index
-        :param levelThreshold: float
+        :param level_threshold: float
         Contour value to search for isosurfaces
 
         :return:
@@ -80,92 +39,81 @@ def construct_mesh_from_lewiner_trimesh(imageStack, spacingData, levelThreshold)
     """
     mesh = None
     try:
-        if levelThreshold is None:
-            vertices, faces, normals, values = measure.marching_cubes(imageStack, method='lewiner', spacing=spacingData,
+        if level_threshold is None:
+            vertices, faces, normals, values = measure.marching_cubes(image_stack, method='lewiner',
+                                                                      spacing=spacing_data,
                                                                       allow_degenerate=False)
         else:
-            vertices, faces, normals, values = measure.marching_cubes(imageStack, method='lewiner',
-                                                                      level=float(levelThreshold), spacing=spacingData,
+            vertices, faces, normals, values = measure.marching_cubes(image_stack, method='lewiner',
+                                                                      level=float(level_threshold),
+                                                                      spacing=spacing_data,
                                                                       allow_degenerate=False)
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-        if mesh:
+        if mesh := trimesh.Trimesh(vertices=vertices, faces=faces):
             return mesh
     except RuntimeError or MemoryError:
-        print(f"Error with image {imageStack.shape} ")
+        print(f"Error with image {image_stack.shape} ")
         return None
 
 
-def construct_and_optimise_from_lewiner(imageStack, spacingData, levelThreshold, tol=5):
+def iterative_deconvolve(filename, fiji_install_folder: str = None, number=5):
     """
-        Lewiner marching cubes algorithm using skimage.measure.marching_cubes_lewiner
-        to find surfaces in 3d volumetric data.
+        Performs iterative deconvolution on an image file using Fiji.
 
-        Convert an imagestack to a pymesh Mesh object, improve it via an optimisation pipeline and delete 'noise' aka
-        small meshes
+        This function initializes Fiji/ImageJ and runs an iterative deconvolution macro on the specified image file.
+        The deconvolved image is saved in a subfolder named 'Deconvolve'. The function exits after completing the
+        deconvolution process.
+        Note that for this function both Fiji and Maven must be installed and added to the PATH environment variable.
 
-        :param imageStack: (M, N, P) array
-        Volume data aka each stack of an  image to find isosurfaces
-        :param spacingData: (3) list
-        Information about the image properties, size of voxel z, x, y
-        Note that you should correct Z-axis depending of medium refraction index
-        :param levelThreshold: float
-        Contour value to search for isosurfaces
-        :param tol: float
-        Percentage of tolerance when looking for small meshes. If the submesh contains less than tol% (5% by default)
-        vertices, delete this mesh from output object
+        Parameters:
+        filename (str or pathlib.Path): The path to the image file to be deconvolved.
+        fiji_install_folder (str, optional): The installation path of Fiji. Defaults to 'D:\Documents\Fiji.app'.
+        number (int, optional): The number of iterations for deconvolution. Defaults to 5.
 
-        :return:
-        An optimised pymesh Mesh object
+        Returns:
+        None
     """
-    mesh = optimise.fix_meshes(construct_mesh_from_lewiner(imageStack, spacingData, levelThreshold))
-    mesh = optimise.new_remove_small_meshes(mesh, tolerance=tol)
-    return mesh
-
-
-def verify_mesh_stability(mesh):
-    meshList = optimise.get_size_of_meshes(optimise.create_graph(mesh))
-    meshList.sort(reverse=True)
-    if (
-            len(meshList) > 1
-            and (meshList[0] + meshList[1]) / np.sum(meshList) > 0.9
-            and meshList[0] / np.sum(meshList) < 0.8
-    ):
-        stability = False
-        # print(f'Can"t recontruct this spine {filename}')
-
-
-def iterative_deconvolve(filename, number=5):
-    fijiInstallFolder = 'D:\Documents\Fiji.app'
-    # ij = imagej.init(fijiInstallFolder, headless=True)
-    ij = imagej.init(fijiInstallFolder)
-    deconvolveFolder = pathlib.Path(filename.stem / "iDeconvolve")
-    deconvolveFolder.mkdir(parents=True, exist_ok=True)
+    java_home = "Fiji.app/java/win64/jdk1.8.0_172/jre"
+    os.environ['JAVA_HOME'] = java_home
+    maven_bin_path = "G:/Documents/PycharmProjects/spine_article/apache-maven-3.9.6/bin"
+    current_path = os.environ.get('PATH', '')
+    new_path = maven_bin_path + os.pathsep + current_path
+    os.environ['PATH'] = new_path
+    ij = imagej.init(r"G:\Documents\PycharmProjects\spine_article\Fiji.app")
+    deconvolve_folder = pathlib.Path(filename.stem / "Deconvolve")
+    deconvolve_folder.mkdir(parents=True, exist_ok=True)
 
     args = {}
 
-    imageName = pathlib.Path(filename)
+    image_name = pathlib.Path(filename)
 
     macro = f"""
-    open("{imageName}")
-    run("Iterative Deconvolve 3D", "image={imageName} point={imageName} output=Deconvolved show perform wiener=0.000 low=1 z_direction=0.3 maximum={number} terminate=0.010")
+    open("{image_name}")
+    run("Iterative Deconvolve 3D", "image={image_name} point={image_name} output=Deconvolved show perform wiener=0.000 low=1 z_direction=0.3 maximum={number} terminate=0.010")
     selectWindow("Deconvolved_{number}");
-    saveAs("Tiff", "{deconvolveFolder}/{imageName.stem}_Deconvolved{number}.tif");
+    saveAs("Tiff", "{deconvolve_folder}/{image_name.stem}_Deconvolved{number}.tif");
     """
 
     print('start')
     ij.py.run_macro(macro, args)
     print('end')
-    exit()
 
 
 @njit
-def numba_segmentation(image):
+def numba_segmentation(image: np.ndarray):
     """
-        Fill missing pixels from chan vese segmentation algorithm, accelerated version with numba
-        :param image: An image with or without missing pixels
-        :return: Corrected image
-    """
-    imageCopy = image.copy()
+       Accelerated image segmentation correction using Numba.
+
+       This function fills in missing pixels in a segmented image using a 3D neighborhood approach.
+       It checks each pixel's 3D neighbors and, if the current pixel is missing (value 0), it calculates
+       an average value from the neighbors. This function is accelerated using Numba for performance improvement.
+
+       Parameters:
+       image (numpy.ndarray): A 3D array representing the segmented image with potential missing pixels.
+
+       Returns:
+       numpy.ndarray: The corrected image with missing pixels filled in.
+   """
+    image_copy = image.copy()
     for z in range(1, image.shape[0] - 2):
         for x in range(1, image.shape[1] - 2):
             for y in range(1, image.shape[2] - 2):
@@ -181,25 +129,44 @@ def numba_segmentation(image):
                     number, value = pixel_numba(image[z, x + 1, y], number, np.uint8(value))
                     number, value = pixel_numba(image[z, x + 1, y + 1], number, np.uint8(value))
                     if number >= 6:
-                        imageCopy[z, x, y] = value / number
-    return imageCopy
+                        image_copy[z, x, y] = value / number
+    return image_copy
 
 
 @njit
 def pixel_numba(pixel, number, value):
+    """
+        Helper function for numba_segmentation, accumulates pixel values and counts.
+
+        It accumulates the value of a pixel and increments the counter if the pixel is relevant for averaging.
+
+        Parameters:
+        pixel (int/float): The pixel value to be added.
+        number (int): The current count of relevant pixels.
+        value (int/float): The current accumulated value of relevant pixels.
+
+        Returns:
+        tuple: A tuple containing the updated number and value.
+    """
     number += 1
     value += pixel
-
     return number, value
 
 
 def correct_segmentation(image):
     """
-        Simple algorithm to correct segmentation created
-        :param image:
-        :return:
+        Corrects segmentation of an image by filling missing pixels.
+
+        This function applies a simple algorithm to correct segmented images. It fills in missing pixels (value 0)
+        by averaging the values of neighboring pixels. This process is done through a 3D neighborhood approach.
+
+        Parameters:
+        image (numpy.ndarray): A 3D array representing the segmented image with potential missing pixels.
+
+        Returns:
+        numpy.ndarray: The corrected image with missing pixels filled in.
     """
-    imageCopy = image.copy()
+    image_copy = image.copy()
     for z in range(1, image.shape[0] - 2):
         for x in range(1, image.shape[1] - 2):
             for y in range(1, image.shape[2] - 2):
@@ -215,18 +182,31 @@ def correct_segmentation(image):
                     number, value = pixel_compare(image[z, x + 1, y], number, value)
                     number, value = pixel_compare(image[z, x + 1, y + 1], number, value)
                     if number >= 6:
-                        imageCopy[z, x, y] = value / number
-    return imageCopy
+                        image_copy[z, x, y] = value / number
+    return image_copy
 
 
 def pixel_compare(pixel, number, value):
+    """
+    Helper function for correct_segmentation, accumulates pixel values and counts.
+
+    It accumulates the value of a pixel and increments the counter if the pixel is relevant for averaging.
+
+    Parameters:
+    pixel (int/float): The pixel value to be added.
+    number (int): The current count of relevant pixels.
+    value (int/float): The current accumulated value of relevant pixels.
+
+    Returns:
+    tuple: A tuple containing the updated number and value.
+    """
     number += 1
     value += pixel
 
     return number, value
 
 
-def get_filepaths(directory, condition=None, pathlibBool=True):
+def get_filepaths(directory, condition=None, pathlib_bool=True):
     """
     This function will generate the file names in a directory
     tree by walking the tree either top-down or bottom-up. For each
@@ -237,152 +217,75 @@ def get_filepaths(directory, condition=None, pathlibBool=True):
 
     for root, directories, files in os.walk(directory):
         for filename in files:
-            filepath = os.path.join(root, filename)
+            file_path = os.path.join(root, filename)
             if (
                     condition in filename
-                    and pathlibBool
+                    and pathlib_bool
                     or not condition
-                    and pathlibBool
+                    and pathlib_bool
             ):
-                file_paths.append(pathlib.Path(filepath))
+                file_paths.append(pathlib.Path(file_path))
             elif condition in filename or not condition:
-                file_paths.append(filepath)
+                file_paths.append(file_path)
     return file_paths
 
 
-def automatic_marching_cube_reconstruction(dirpath, filename):
+def get_param_list(image_stack):
     """
-        An automatic routine to convert image stacks to 3D triangular meshes.
-        :param dirpath: The full directory path where the file(s) are stored,
-        ex : /home/user/Documents/spineReconstruction/Images/ or C:/Users/Documents/spineReconstruction/Images
-        :param filename: The name of the image stack file in tiff, ex : stackimage.tiff or stackimage.tif
-        :return:
+        Generates a list of parameters based on the min and max values in an image stack.
+
+        This function calculates the minimum and maximum values in the provided image stack and then
+        generates a list of parameters. These parameters are a series of fractions of the maximum value,
+        along with the minimum, maximum, and mean values.
+
+        Parameters:
+        image_stack (numpy.ndarray): The image stack from which to calculate parameters.
+
+        Returns:
+        list: A list of calculated parameters based on the min and max values of the image stack.
     """
-    print(f'Computing : {filename.strip(".tif").split("/")[-1]}_mesh')
-    imageStack = io.imread(f'{dirpath}/{filename}')
-    print(imageStack.shape)
-    zSpacing = 0.36 / 1.518
-
-    levelThreshold = 0
-    stability = True
-
-    try:
-        mesh = construct_mesh_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-
-    except ValueError("Surface level must be within volume data range.") as texterror:
-        print(f"No reconstruction because of error : {texterror}, skip {filename}")
-        exit()
-
-    # Todo : refactoring and cut into more functions
-    while stability:
-        # if levelThreshold > 200:
-        if levelThreshold > 400:
-            print('Image seems to be mostly noise, or resolution is super good. Stopping at levelTreshold 400')
-            stability = False
-            # levelThreshold = 200
-            levelThreshold = 395
-
-        try:
-            mesh2 = construct_mesh_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-
-        except Exception as texterror:
-            stability = False
-            # print(texterror)
-            # print(texterror.__str__())
-            levelThreshold = 1
-            # print("Surface level must be within volume data range.")
-            try:
-                mesh2 = construct_mesh_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-            except Exception as texterror:
-                print(
-                    f"No reconstruction because of error : {texterror} at threshold : {levelThreshold}, skip {filename}")
-                return
-        meshList = optimise.get_size_of_meshes(optimise.create_graph(mesh2))
-        meshList.sort(reverse=True)
-        meshList = [x if x > 0.01 * np.sum(meshList) else 0 for x in meshList]
-        if len(meshList) > 1:
-            if (meshList[0] + meshList[1]) / np.sum(meshList) > 0.9 and meshList[0] / np.sum(meshList) < 0.8:
-                stability = False
-                stability2 = False
-                # neck and head are dissociated
-                while not stability2:
-                    levelThreshold -= 1
-                    levelThreshold = max(levelThreshold, 0)
-                    try:
-                        mesh2 = construct_mesh_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-                    except Exception as texterror:
-                        print(
-                            f"No reconstruction because of error : {texterror} at threshold : {levelThreshold}, skip {filename}")
-                        return
-
-                    meshL = optimise.remove_noise(mesh2)
-                    if len(meshL) > 1:
-                        if (
-                                len(meshL[0].vertices) + len(meshL[1].vertices)
-                        ) / len(mesh2.vertices) <= 0.9 or len(
-                            meshL[0].vertices
-                        ) / len(
-                            mesh2.vertices
-                        ) >= 0.8:
-                            levelThreshold -= levelThreshold / 10
-                            break
-                    else:
-                        levelThreshold -= levelThreshold / 10
-                        break
-            else:
-                levelThreshold += 5
-        else:
-            levelThreshold += 5
-            # Look for narrow reconstruction
-    try:
-        mesh3 = construct_and_optimise_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-
-    except Exception as texterror:
-        levelThreshold *= 0.9
-        try:
-            mesh3 = construct_and_optimise_from_lewiner(imageStack, (zSpacing, 0.05, 0.05), levelThreshold)
-        except Exception as texterror:
-            print(f"No reconstruction because of error : {texterror} at threshold : {levelThreshold}, skip {filename}")
-            return
-
-    mesh3 = optimise.new_remove_small_meshes(mesh3)
-    print(f'Saving mesh with level threshold : {levelThreshold} in optimisedMeshes')
-    pymesh.save_mesh(f'optimisedMeshes/{filename.split(".")[0]}_{levelThreshold}_optimised.stl', mesh3)
+    volume = np.ascontiguousarray(image_stack, np.float32)
+    min_volume = np.amin(volume)
+    max_volume = np.amax(volume)
+    return [min_volume, max_volume / 100, max_volume / 80, max_volume / 60, max_volume / 40, max_volume / 20,
+            max_volume / 15, max_volume / 10, max_volume / 5, max_volume, 0.5 * (min_volume + max_volume)]
 
 
-def get_param_list(imageStack):
-    volume = np.ascontiguousarray(imageStack, np.float32)
-    minVolume = np.amin(volume)
-    maxVolume = np.amax(volume)
-    return [minVolume, maxVolume / 100, maxVolume / 80, maxVolume / 60, maxVolume / 40, maxVolume / 20,
-            maxVolume / 15, maxVolume / 10, maxVolume / 5, maxVolume, 0.5 * (minVolume + maxVolume)]
-
-
-def reduce_image(imageStack, margin=1):
+def reduce_image(image_stack, margin=1):
     """
-    Trim the leading and trailing zeros from a N-D array.
+        Reduces the size of an image stack by trimming zero-padding while keeping a specified margin.
 
-    :param arr: numpy array
-    :param margin: how many zeros to leave as a margin
-    :returns: trimmed array
-    :returns: slice object
+        This function initially expands the image stack by a margin of zeroes and then trims the zeros
+        from the edges while maintaining the specified margin around the non-zero regions of the image stack.
+
+        Parameters:
+        image_stack (numpy.ndarray): A 3D array representing the image stack to be reduced.
+        margin (int, optional): The margin of zeros to retain around the image stack. Defaults to 1.
+
+        Returns:
+        numpy.ndarray: The reduced image stack with the specified margin retained.
     """
-    z, x, y = imageStack.shape
+    z, x, y = image_stack.shape
     # Image is increased to try to close the mesh, in any case all non useful zero will be remove to keep margin value
-    newImage = np.zeros((z + 2 * margin, x + 2 * margin, y + 2 * margin))
-    newImage[1:-1, 1:-1, 1:-1] = imageStack
-    newImage = trim_zeros(newImage)
-    return newImage[0]
+    new_image = np.zeros((z + 2 * margin, x + 2 * margin, y + 2 * margin))
+    new_image[1:-1, 1:-1, 1:-1] = image_stack
+    new_image = trim_zeros(new_image)
+    return new_image[0]
 
 
 def trim_zeros(arr, margin=1):
     """
-    Trim the leading and trailing zeros from a N-D array.
+        Trims zero-padding from an array while keeping a specified margin around the non-zero regions.
 
-    :param arr: numpy array
-    :param margin: how many zeros to leave as a margin
-    :returns: trimmed array
-    :returns: slice object
+        This function iteratively trims zero-padding from each dimension of the array, retaining a specified
+        margin around the non-zero regions of the array.
+
+        Parameters:
+        arr (numpy.ndarray): The array from which zero-padding should be trimmed.
+        margin (int, optional): The margin of zeros to retain around the non-zero regions of the array. Defaults to 1.
+
+        Returns:
+        tuple: A tuple containing the trimmed array and the slicing information.
     """
     s = []
     for dim in range(arr.ndim):
@@ -408,69 +311,120 @@ def trim_zeros(arr, margin=1):
     return arr[tuple(s)], tuple(s)
 
 
-def try_reconstruction(imageStack, spacingData, meshpath, nameList, division=True, loop=0):
-    paramList = get_param_list(imageStack)
+def try_reconstruction(image_stack, spacing_data, mesh_path, name_list, division=True, loop=0):
+    """
+        Attempts to reconstruct a mesh from an image stack with different parameters.
+
+        This function iteratively tries to reconstruct a mesh from an image stack using varying parameters.
+        If successful, the mesh is saved, and an optimization process is applied. In case of large meshes,
+        the function can optionally divide the image stack and attempt reconstruction on the smaller segments.
+
+        Parameters:
+        image_stack (numpy.ndarray): The stack of images for mesh reconstruction.
+        spacing_data (tuple): The spacing data for mesh reconstruction.
+        mesh_path (str): The path where the reconstructed mesh will be saved.
+        name_list (list): A list of names corresponding to different reconstruction parameters.
+        division (bool, optional): Whether to divide the image stack for large meshes. Defaults to True.
+        loop (int, optional): The current loop iteration for recursive calls. Defaults to 0.
+
+    """
+    paramList = get_param_list(image_stack)
     print(paramList)
     for num, param in enumerate(paramList):
         print(param)
         if paramList[num] >= paramList[0]:
-            if mesh := construct_mesh_from_lewiner_trimesh(imageStack, spacingData, param):
+            if mesh := construct_mesh_from_Lewiner_trimesh(image_stack, spacing_data, param):
                 if mesh.vertices.shape[0] < 4.5e6:
-                    mesh.export(f"{meshpath}/{nameList[num]}.ply")
-                    optimise_trimesh.mesh_remesh(mesh, meshpath, param, f"{nameList[num]}_{loop}")
+                    mesh.export(f"{mesh_path}/{name_list[num]}.ply")
+                    optimise_trimesh.mesh_remesh(mesh, mesh_path, param, f"{name_list[num]}_{loop}")
                 elif division:
                     print("divided")
-                    z, x, y = imageStack.shape
-                    try_reconstruction(imageStack[:, 0:int(x / 2), 0:int(y / 2)], spacingData, meshpath,
-                                       nameList, loop=2 * loop + 1)
-                    try_reconstruction(imageStack[:, int(x / 2):, int(y / 2):], spacingData, meshpath,
-                                       nameList, loop=2 * loop + 2)
+                    z, x, y = image_stack.shape
+                    try_reconstruction(image_stack[:, 0:int(x / 2), 0:int(y / 2)], spacing_data, mesh_path,
+                                       name_list, loop=2 * loop + 1)
+                    try_reconstruction(image_stack[:, int(x / 2):, int(y / 2):], spacing_data, mesh_path,
+                                       name_list, loop=2 * loop + 2)
 
                 del mesh
 
 
-def folder_reconstruction(folder):
+def folder_reconstruction(folder, z_spacing: float = 1, pixel_size_x: float = 1, pixel_size_y: float = 1):
+    """
+        Performs mesh reconstruction for all TIFF images in a specified folder.
+
+        This function walks through a specified folder, reads each TIFF image, preprocesses it, and then
+        attempts mesh reconstruction using the `try_reconstruction` function. The reconstructed meshes
+        are saved in a subfolder within the original image folder.
+
+        Parameters:
+        folder (str): The path to the folder containing TIFF images for reconstruction.
+        z_spacing (float, optional): The z-spacing between two stacks. Defaults to 1.
+        pixel_size_x (float, optional): The pixel size in the x-direction. Defaults to 1.
+        pixel_size_y (float, optional): The pixel size in the y-direction. Defaults to 1.
+
+    """
     folder = pathlib.Path(folder)
     folder = pathlib.Path(folder)
-    # for (dirpath, _, filenames) in tqdm(os.walk(folder)):
-    filenameBar = get_filepaths(folder, ".tif")
-    for filename in filenameBar:
-        imageStack = tifffile.imread(filename)
+    filename_bar = get_filepaths(folder, ".tif")
+    for filename in filename_bar:
+        image_stack = tifffile.imread(filename)
 
-        dirPath = pathlib.Path(filename.parent)
+        image_stack = numba_segmentation(image_stack)
+        image_stack = (image_stack - image_stack.min()) / (image_stack.max() - image_stack.min()) * 255
+        image_stack = image_stack.astype(np.int8)
 
-        imageStack = numba_segmentation(imageStack)
-        imageStack = (imageStack - imageStack.min()) / (imageStack.max() - imageStack.min()) * 255
-        imageStack = imageStack.astype(np.int)
+        image_stack = reduce_image(image_stack)
 
-        imageStack = reduce_image(imageStack)
+        name_list = ["min", "40", "35", "30", "25", "20", "15", "10", "5", "max", "mean"]
+        mesh_path = pathlib.Path(f"{filename.parent.parent}/Mesh/{filename.stem}/")
+        mesh_path.mkdir(parents=True, exist_ok=True)
 
-        nameList = ["min", "40", "35", "30", "25", "20", "15", "10", "5", "max", "mean"]
-        meshPath = pathlib.Path(f"{filename.parent.parent}/Mesh/{filename.stem}/")
-        meshPath.mkdir(parents=True, exist_ok=True)
-
-        try_reconstruction(imageStack, [0.35 / 1.518, 0.05, 0.05], meshPath, nameList, division=False)
+        try_reconstruction(image_stack, [z_spacing, pixel_size_x, pixel_size_y],
+                           mesh_path, name_list, division=False)
 
 
 def czi_to_tif(folder):
+    """
+        Converts CZI files to TIFF format in a specified folder.
+
+        This function iterates through all CZI files in a given folder, reads each file, and converts it
+        to TIFF format. The TIFF files are saved in the same folder with the same base filename.
+
+        Parameters:
+        folder (str): The folder containing CZI files to convert.
+
+        Returns:
+        None
+    """
     filenames = get_filepaths(folder, ".czi")
     for filename in filenames:
-        cziImg = czifile.imread(filename)
-        tiffImg = np.squeeze(cziImg)
-        tifffile.imsave(f"{folder}/{filename.stem}.tif", tiffImg)
+        czi_img = czifile.imread(filename)
+        tiff_img = np.squeeze(czi_img)
+        tifffile.imwrite(f"{folder}/{filename.stem}.tif", tiff_img)
 
 
 def regroup_files(folder, extension=".czi"):
+    """
+        Renames files in a specified folder by replacing spaces with underscores, for files with a given extension.
+
+        This function iterates through files in the specified folder with the specified extension. It renames
+        each file by replacing spaces in the filename with underscores. Files with 'colloc' in their name are
+        skipped. If a file with the new name already exists, a message is printed.
+
+        Parameters:
+        folder (str): The path to the folder containing files to be renamed.
+        extension (str, optional): The file extension to filter by. Defaults to '.czi'.
+
+    """
     filenames = get_filepaths(folder, extension)
     for filename in filenames:
         if "colloc" not in filename.__str__():
             # Assure that there is no space
             try:
-                filename.rename(pathlib.Path(f"D:\Downloads\\temp\\{filename.name.replace(' ', '_')}"))
+                filename.rename(pathlib.Path(f"{folder}/{filename.name.replace(' ', '_')}"))
             except FileExistsError:
-                pass
+                print("File already exists")
 
 
 if __name__ == "__main__":
-    folder_reconstruction(r"D:\Documents\PycharmProjects\spineReconstruction3D\article_test")
-    exit()
+    folder_reconstruction(r"Segmented", z_spacing=0.35 / 1.518, pixel_size_x=0.05, pixel_size_y=0.05)

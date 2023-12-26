@@ -1,8 +1,13 @@
 matplotlib
 numpy
-skimage
+scikit-image
 tifffile
 tqdm
 trimesh
 pandas
 numba
+czifile
+plotly
+seaborn
+scikit-learn
+pymeshlab

@@ -222,14 +222,16 @@ def checkerboard_level_set(image_shape, square_size=5):
     circle_level_set
     """
 
-    grid = np.ogrid[[slice(i) for i in image_shape]]
-    grid = [(grid_i // square_size) & 1 for grid_i in grid]
+    # grid = np.meshgrid[[slice(i) for i in image_shape]]
+    # grid = [(grid_i // square_size) & 1 for grid_i in grid]
+    # checkerboard = np.bitwise_xor.reduce(grid, axis=0)
 
-    # print(grid.shape)
+    # Code above is deprecated in numpy 1.23 to keep a track of initial work I decided to put it in comment.
 
-    checkerboard = np.bitwise_xor.reduce(grid, axis=0)
-    res = np.int8(checkerboard)
-    return res
+    coords = np.meshgrid(*[np.arange(dim) for dim in image_shape], indexing='ij')
+    checkerboard = np.bitwise_xor.reduce([(coord // square_size) & 1 for coord in coords], axis=0)
+
+    return np.int8(checkerboard)
 
 
 def inverse_gaussian_gradient(image, alpha=100.0, sigma=5.0):
