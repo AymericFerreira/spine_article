@@ -124,7 +124,7 @@ def calculate_kernel_density(component1, component2, xx, yy, mode="stats"):
     return z, xx, yy
 
 
-def sns_kd(dataset_path: str):
+def sns_kd(df: pd.DataFrame):
     """
         Creates kernel density plots for different clusters and groups in a dataset.
 
@@ -140,11 +140,11 @@ def sns_kd(dataset_path: str):
             the dataset.
             The quality of the resulting plots depends on your data, feel free to adjust the different parameters
     """
-    df = pd.read_csv(dataset_path)
     xmin = df["Principal component 1"].min()
     xmax = df["Principal component 1"].max()
     ymin = df["Principal component 2"].min()
     ymax = df["Principal component 2"].max()
+    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 
     group_cl_df = pd.DataFrame(columns=["Type", "Group", "Cluster", "X", "Y"])
     for group in sorted(df["Group"].unique()):

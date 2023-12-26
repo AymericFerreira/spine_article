@@ -11,3 +11,4 @@ plotly
 seaborn
 scikit-learn
 pymeshlab
+statsmodels

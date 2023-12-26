@@ -37,8 +37,3 @@ def generate_pie_charts(df: pd.DataFrame, group_col: str, cluster_col: str, titl
     if statistical_test:
         pops = generate_populations(df, ["Group", "Clusters"])
         print(compare_all_pairs(pops))
-
-
-# if __name__ == '__main__':
-#     df = pd.read_csv(r"G:\Documents\PycharmProjects\newSpineClassifier\datasets\dataset_for_article\good_dataset_from_september.csv")
-#     generate_pie_charts(df, "Group", "Clusters", title="Cluster distribution", statistical_test=True)

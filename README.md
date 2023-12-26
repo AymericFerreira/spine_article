@@ -5,6 +5,7 @@ official website : https://github.com/imagej/pyimagej
 If you want to skip the deconvolution part or will use directly ImageJ, or you installed pyimagej, you can install the remaining requirements with pip :
 If you need help installing python you can follow the instructions of our previous project : https://github.com/SaghatelyanLab/clusterAnalysis
 
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -62,7 +63,7 @@ Several metrics could be added to this list, and we encourage you to add them if
 # Analysis pipeline 
 
 The analysis pipeline is similar to our previously published work : https://github.com/SaghatelyanLab/clusterAnalysis
-We added a script (kde.py) to generate the Kernel Density Estimation (KDE).
+We added a script (kde.py) to generate the Kernel Density Estimation (KDE) and a script (piecharts.py) to generate the piecharts and the related statistical tests.
 
 # Notes :
 
