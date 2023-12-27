@@ -203,8 +203,6 @@ def smoothing_via_mesh_lab_server(mesh_filename, laplacien=1):
         return
     mesh_dir = mesh_filename.parent
     mesh = trimesh.load_mesh(mesh_filename)
-    mesh_path = pathlib.Path(mesh_filename)
-    mesh_faces = int(mesh.faces.shape[0] / 3)
 
     del mesh
 
@@ -440,19 +438,20 @@ def new_remove_small_meshes(mesh, tolerance='auto'):
         mask = np.zeros(len(mesh.faces), dtype=bool)
         mask[np.concatenate(cc)] = True
         mesh.update_faces(mask)
-        meshT = mesh.split(only_watertight=False).tolist()
-        if type(meshT) is not list:
-            return meshT
+        mesh_t = mesh.split(only_watertight=False).tolist()
+        # if type(mesh_t) is not list:
+        if not isinstance(mesh_t, list):
+            return mesh_t
         if tolerance == 'auto':
-            sum_m = sum(len(submesh.vertices) for submesh in meshT)
-            tolerance = int(sum_m / len(meshT))
+            sum_m = sum(len(submesh.vertices) for submesh in mesh_t)
+            tolerance = int(sum_m / len(mesh_t))
             print(f'Auto tolerance set to {tolerance} vertices')
         elif isinstance(tolerance, np.float):
             tolerance = tolerance / 100 * len(mesh.vertices)
         biggest_meshes_list = []
         max_vertex = 0
         bigger_mesh = None
-        for subMesh in meshT:
+        for subMesh in mesh_t:
             if len(subMesh.vertices) > tolerance:
                 biggest_meshes_list.append(subMesh)
             if max_vertex < len(subMesh.vertices):
@@ -461,7 +460,7 @@ def new_remove_small_meshes(mesh, tolerance='auto'):
                 bigger_mesh = subMesh
         if biggest_meshes_list is []:
             print('Mesh seems broken')
-            return meshT
+            return mesh_t
         else:
             if len(biggest_meshes_list) > 1:
                 print(f'Mesh was simplifed from {len(mesh.vertices)} to {len(bigger_mesh.vertices)}')

@@ -14,19 +14,8 @@ fonttools==4.47.0
     # via matplotlib
 imageio==2.33.1
     # via scikit-image
-imglyb==2.1.0
-    # via pyimagej
-jgo==1.0.5
-    # via
-    #   pyimagej
-    #   scyjava
 joblib==1.3.2
     # via scikit-learn
-jpype1==1.4.1
-    # via
-    #   imglyb
-    #   pyimagej
-    #   scyjava
 kiwisolver==1.4.5
     # via matplotlib
 lazy-loader==0.3
@@ -36,7 +25,6 @@ llvmlite==0.41.1
 matplotlib==3.8.2
     # via
     #   -r requirements.in
-    #   pyimagej
     #   seaborn
 networkx==3.2.1
     # via scikit-image
@@ -48,41 +36,37 @@ numpy==1.26.2
     #   contourpy
     #   czifile
     #   imageio
-    #   imglyb
     #   matplotlib
     #   numba
     #   pandas
-    #   pyimagej
+    #   patsy
     #   pymeshlab
     #   scikit-image
     #   scikit-learn
     #   scipy
     #   seaborn
+    #   statsmodels
     #   tifffile
     #   trimesh
-    #   xarray
 packaging==23.2
     # via
-    #   jpype1
     #   matplotlib
     #   plotly
     #   scikit-image
-    #   xarray
+    #   statsmodels
 pandas==2.1.4
     # via
     #   -r requirements.in
     #   seaborn
-    #   xarray
+    #   statsmodels
+patsy==0.5.5
+    # via statsmodels
 pillow==10.1.0
     # via
     #   imageio
     #   matplotlib
     #   scikit-image
 plotly==5.18.0
-    # via -r requirements.in
-psutil==5.9.7
-    # via jgo
-pyimagej==1.1.1
     # via -r requirements.in
 pymeshlab==2023.12
     # via -r requirements.in
@@ -102,15 +86,15 @@ scipy==1.11.4
     # via
     #   scikit-image
     #   scikit-learn
-scyjava==1.9.1
-    # via
-    #   -r requirements.in
-    #   imglyb
-    #   pyimagej
+    #   statsmodels
 seaborn==0.13.0
     # via -r requirements.in
 six==1.16.0
-    # via python-dateutil
+    # via
+    #   patsy
+    #   python-dateutil
+statsmodels==0.14.1
+    # via -r requirements.in
 tenacity==8.2.3
     # via plotly
 threadpoolctl==3.2.0
@@ -126,5 +110,3 @@ trimesh==4.0.8
     # via -r requirements.in
 tzdata==2023.3
     # via pandas
-xarray==2023.12.0
-    # via pyimagej

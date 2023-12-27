@@ -6,12 +6,11 @@ from skimage import measure
 import tifffile
 import trimesh
 import pathlib
-from tqdm import tqdm
 from numba import njit
-import numba
 import optimise_trimesh
 import imagej
 import czifile
+from spineCrawler import get_filepaths
 
 NUMBA_DEBUG = 0
 
@@ -206,28 +205,28 @@ def pixel_compare(pixel, number, value):
     return number, value
 
 
-def get_filepaths(directory, condition=None, pathlib_bool=True):
-    """
-    This function will generate the file names in a directory
-    tree by walking the tree either top-down or bottom-up. For each
-    directory in the tree rooted at directory top (including top itself),
-    it yields a 3-tuple (dirpath, dirnames, filenames).
-    """
-    file_paths = []
-
-    for root, directories, files in os.walk(directory):
-        for filename in files:
-            file_path = os.path.join(root, filename)
-            if (
-                    condition in filename
-                    and pathlib_bool
-                    or not condition
-                    and pathlib_bool
-            ):
-                file_paths.append(pathlib.Path(file_path))
-            elif condition in filename or not condition:
-                file_paths.append(file_path)
-    return file_paths
+# def get_filepaths(directory, condition=None, pathlib_bool=True):
+#     """
+#     This function will generate the file names in a directory
+#     tree by walking the tree either top-down or bottom-up. For each
+#     directory in the tree rooted at directory top (including top itself),
+#     it yields a 3-tuple (dirpath, dirnames, filenames).
+#     """
+#     file_paths = []
+#
+#     for root, directories, files in os.walk(directory):
+#         for filename in files:
+#             file_path = os.path.join(root, filename)
+#             if (
+#                     condition in filename
+#                     and pathlib_bool
+#                     or not condition
+#                     and pathlib_bool
+#             ):
+#                 file_paths.append(pathlib.Path(file_path))
+#             elif condition in filename or not condition:
+#                 file_paths.append(file_path)
+#     return file_paths
 
 
 def get_param_list(image_stack):
@@ -328,17 +327,17 @@ def try_reconstruction(image_stack, spacing_data, mesh_path, name_list, division
         loop (int, optional): The current loop iteration for recursive calls. Defaults to 0.
 
     """
-    paramList = get_param_list(image_stack)
-    print(paramList)
-    for num, param in enumerate(paramList):
-        print(param)
-        if paramList[num] >= paramList[0]:
+    param_list = get_param_list(image_stack)
+    print(f"List of parameters {param_list}")
+    for num, param in enumerate(param_list):
+        print(f"Computing {param}")
+        if param_list[num] >= param_list[0]:
             if mesh := construct_mesh_from_Lewiner_trimesh(image_stack, spacing_data, param):
                 if mesh.vertices.shape[0] < 4.5e6:
                     mesh.export(f"{mesh_path}/{name_list[num]}.ply")
                     optimise_trimesh.mesh_remesh(mesh, mesh_path, param, f"{name_list[num]}_{loop}")
                 elif division:
-                    print("divided")
+                    print("Divided mesh")
                     z, x, y = image_stack.shape
                     try_reconstruction(image_stack[:, 0:int(x / 2), 0:int(y / 2)], spacing_data, mesh_path,
                                        name_list, loop=2 * loop + 1)
@@ -403,27 +402,27 @@ def czi_to_tif(folder):
         tifffile.imwrite(f"{folder}/{filename.stem}.tif", tiff_img)
 
 
-def regroup_files(folder, extension=".czi"):
-    """
-        Renames files in a specified folder by replacing spaces with underscores, for files with a given extension.
-
-        This function iterates through files in the specified folder with the specified extension. It renames
-        each file by replacing spaces in the filename with underscores. Files with 'colloc' in their name are
-        skipped. If a file with the new name already exists, a message is printed.
-
-        Parameters:
-        folder (str): The path to the folder containing files to be renamed.
-        extension (str, optional): The file extension to filter by. Defaults to '.czi'.
-
-    """
-    filenames = get_filepaths(folder, extension)
-    for filename in filenames:
-        if "colloc" not in filename.__str__():
-            # Assure that there is no space
-            try:
-                filename.rename(pathlib.Path(f"{folder}/{filename.name.replace(' ', '_')}"))
-            except FileExistsError:
-                print("File already exists")
+# def regroup_files(folder, extension=".czi"):
+#     """
+#         Renames files in a specified folder by replacing spaces with underscores, for files with a given extension.
+#
+#         This function iterates through files in the specified folder with the specified extension. It renames
+#         each file by replacing spaces in the filename with underscores. Files with 'colloc' in their name are
+#         skipped. If a file with the new name already exists, a message is printed.
+#
+#         Parameters:
+#         folder (str): The path to the folder containing files to be renamed.
+#         extension (str, optional): The file extension to filter by. Defaults to '.czi'.
+#
+#     """
+#     filenames = get_filepaths(folder, extension)
+#     for filename in filenames:
+#         if "colloc" not in filename.__str__():
+#             # Assure that there is no space
+#             try:
+#                 filename.rename(pathlib.Path(f"{folder}/{filename.name.replace(' ', '_')}"))
+#             except FileExistsError:
+#                 print("File already exists")
 
 
 if __name__ == "__main__":

@@ -9,11 +9,12 @@ from spineCrawler import parser, get_filepaths
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from draw import plot_3d_scatter_with_color_and_gravity_center_and_gravity_median, plot_3d_scatter_fixed, plot_frequency
+from importlib.util import find_spec
 
 try:
     import pymesh
 except ImportError:
-    print("Pymesh not installed, some functions will not work")
+    print("Pymesh not installed, it is optional and code works without it.")
 
 
 def pymesh_to_trimesh(mesh):
@@ -878,9 +879,9 @@ def is_pymesh():
        Returns:
        bool: Returns True if PyMesh is installed, False otherwise.
    """
-    try:
-        import pymesh
-    except ImportError:
+    if find_spec("pymesh") is not None:
+        return True
+    else:
         return False
 
 

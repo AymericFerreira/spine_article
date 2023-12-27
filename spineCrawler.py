@@ -30,7 +30,7 @@ def regroup_files(folder, extension=".czi"):
                 print("File already exists")
 
 
-def get_filepaths(directory, condition=None, pathlibBool=True):
+def get_filepaths(directory, condition=None, pathlib_bool=True):
     """
         Generates a list of file paths in a directory tree.
 
@@ -52,9 +52,9 @@ def get_filepaths(directory, condition=None, pathlibBool=True):
             filepath = os.path.join(root, filename)
             if (
                     condition in filename
-                    and pathlibBool
+                    and pathlib_bool
                     or not condition
-                    and pathlibBool
+                    and pathlib_bool
             ):
                 file_paths.append(pathlib.Path(filepath))
             elif condition in filename or not condition:
