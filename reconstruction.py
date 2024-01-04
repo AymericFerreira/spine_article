@@ -402,28 +402,5 @@ def czi_to_tif(folder):
         tifffile.imwrite(f"{folder}/{filename.stem}.tif", tiff_img)
 
 
-# def regroup_files(folder, extension=".czi"):
-#     """
-#         Renames files in a specified folder by replacing spaces with underscores, for files with a given extension.
-#
-#         This function iterates through files in the specified folder with the specified extension. It renames
-#         each file by replacing spaces in the filename with underscores. Files with 'colloc' in their name are
-#         skipped. If a file with the new name already exists, a message is printed.
-#
-#         Parameters:
-#         folder (str): The path to the folder containing files to be renamed.
-#         extension (str, optional): The file extension to filter by. Defaults to '.czi'.
-#
-#     """
-#     filenames = get_filepaths(folder, extension)
-#     for filename in filenames:
-#         if "colloc" not in filename.__str__():
-#             # Assure that there is no space
-#             try:
-#                 filename.rename(pathlib.Path(f"{folder}/{filename.name.replace(' ', '_')}"))
-#             except FileExistsError:
-#                 print("File already exists")
-
-
 if __name__ == "__main__":
     folder_reconstruction(r"Segmented", z_spacing=0.35 / 1.518, pixel_size_x=0.05, pixel_size_y=0.05)
