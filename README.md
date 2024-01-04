@@ -20,7 +20,7 @@ bioRxiv 2023.07.20.549882; doi: https://doi.org/10.1101/2023.07.20.549882
 
 # Install
 
-This package may require installing PyImageJ for the deconvolution process. If needed, follow the instructions on the official website : https://github.com/imagej/pyimagej
+This package may require the installation of the package PyImageJ for the deconvolution process. If needed, follow the instructions on the official website : https://github.com/imagej/pyimagej
 
  If you prefer to skip deconvolution, plan to use ImageJ directly, or have installed PyImageJ, you can install the remaining requirements via pip. For guidance on installing Python, refer to our previous project:  https://github.com/SaghatelyanLab/clusterAnalysis
 
@@ -61,6 +61,7 @@ The **3D_reconstruction.py** script reconstructs 3D images from the **Segmented*
 # Extraction of the spines
 
 To extract the dendritic spines from the dendrite we used meshlab. You can download it here : https://www.meshlab.net/#download
+The extraction is performed manually.
 
 # Analysis of the spines
 
@@ -74,12 +75,42 @@ After extraction, place your spines in the **Spines** folder and run **metrics.p
 - **CVD** : the coefficient of variation of the distance between the edges of the spine and the spine base center
 - **Open angle** : the angle between the spine normal and the different vertices of the spine
 
-Users can add easily add metrics if needed.
+Users can easily add metrics if needed by adding them in the function **compute_trimesh_metrics** in the file **metric.py**.
 
 # Analysis pipeline 
 
 The analysis pipeline is similar to our previously published work : https://github.com/SaghatelyanLab/clusterAnalysis
 We added scripts (**kde.py** and **piecharts.py**) for generating Kernel Density Estimation (KDE) graphs, pie charts, and associated statistical tests.
+
+# Workflow
+
+Add your images in Images/ folder. The parameters of segmentation **mu**, **lambda1**, **lambda2** and **iterations** can be adjusted to increase segmentation quality. 
+After defining the parameters, run :
+
+```bash
+python deconvolution_segmentation.py
+```
+
+Then, adjust the parameters **z_spacing**, **pixel_size_x** and **pixel_size_y** according to your image stack and perform the reconstruction :
+
+```bash
+python reconstruction.py
+```
+
+Then, extract your spines manually using Meshlab and place them in Spines/ folder. Finally, run :
+
+```bash
+python metrics.py
+```
+
+The metrics will be saved in a CSV file in the Spines/ folder.
+
+After downloading the analysis pipeline, modify the **DataSetpath** in the **general_analysis_parameters.json** and perform the analysis using :
+
+```bash
+python analyse.py
+```
+
 
 # Notes :
 
