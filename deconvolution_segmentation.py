@@ -127,7 +127,7 @@ def threaded_process(items_chunk, segmentation_path):
         morphologic_chan_vese_segmentation(item, segmentation_path)
 
 
-def morphologic_chan_vese_segmentation(filename, segmentation_path, mu=0, lambda1=1, lambda2=4):
+def morphologic_chan_vese_segmentation(filename, segmentation_path, mu=0, lambda1=1, lambda2=4, iterations=100):
     """
         Applies Morphological Chan-Vese segmentation to a single TIFF image and saves the result.
 
@@ -141,19 +141,20 @@ def morphologic_chan_vese_segmentation(filename, segmentation_path, mu=0, lambda
         mu (float, optional): The 'smoothing' parameter for segmentation. Defaults to 1.
         lambda1 (float, optional): The 'lambda1' parameter for foreground segmentation. Defaults to 1.
         lambda2 (float, optional): The 'lambda2' parameter for background segmentation. Defaults to 4.
+        iterations (float, optional): The "iterations" corresponds to the number of iterations to run. Defaults to 100.
 
         Returns:
         None: The function performs segmentation and saves the segmented image
     """
     img = tifffile.imread(filename)
 
-    segmented_image = ms.morphological_chan_vese(img, iterations=100,
+    segmented_image = ms.morphological_chan_vese(img, iterations=iterations,
                                                  init_level_set='checkerboard',
                                                  smoothing=mu, lambda1=lambda1, lambda2=lambda2)
 
     image_stack = img * segmented_image
 
-    segmented_image_name = f"{segmentation_path}/{filename.stem}_{mu}_{lambda1}_{lambda2}{filename.suffix}"
+    segmented_image_name = f"{segmentation_path}/{filename.stem}_{mu}_{lambda1}_{lambda2}_{iterations}_{filename.suffix}"
     tifffile.imwrite(segmented_image_name, image_stack)
 
 
