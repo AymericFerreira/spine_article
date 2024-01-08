@@ -188,31 +188,6 @@ def pixel_compare(pixel, number, value):
 
     return number, value
 
-
-# def get_filepaths(directory, condition=None, pathlib_bool=True):
-#     """
-#     This function will generate the file names in a directory
-#     tree by walking the tree either top-down or bottom-up. For each
-#     directory in the tree rooted at directory top (including top itself),
-#     it yields a 3-tuple (dirpath, dirnames, filenames).
-#     """
-#     file_paths = []
-#
-#     for root, directories, files in os.walk(directory):
-#         for filename in files:
-#             file_path = os.path.join(root, filename)
-#             if (
-#                     condition in filename
-#                     and pathlib_bool
-#                     or not condition
-#                     and pathlib_bool
-#             ):
-#                 file_paths.append(pathlib.Path(file_path))
-#             elif condition in filename or not condition:
-#                 file_paths.append(file_path)
-#     return file_paths
-
-
 def get_param_list(image_stack):
     """
         Generates a list of parameters based on the min and max values in an image stack.
