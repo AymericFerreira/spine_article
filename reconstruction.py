@@ -81,49 +81,6 @@ def construct_mesh_from_Lewiner_trimesh(image_stack, spacing_data, level_thresho
         return None
 
 
-def iterative_deconvolve(filename, fiji_install_folder: str = None, number=5):
-    """
-        Performs iterative deconvolution on an image file using Fiji.
-
-        This function initializes Fiji/ImageJ and runs an iterative deconvolution macro on the specified image file.
-        The deconvolved image is saved in a subfolder named 'Deconvolve'. The function exits after completing the
-        deconvolution process.
-        Note that for this function both Fiji and Maven must be installed and added to the PATH environment variable.
-
-        Parameters:
-        filename (str or pathlib.Path): The path to the image file to be deconvolved.
-        fiji_install_folder (str, optional): The installation path of Fiji. Defaults to 'D:\Documents\Fiji.app'.
-        number (int, optional): The number of iterations for deconvolution. Defaults to 5.
-
-        Returns:
-        None
-    """
-    java_home = "Fiji.app/java/win64/jdk1.8.0_172/jre"
-    os.environ['JAVA_HOME'] = java_home
-    maven_bin_path = "G:/Documents/PycharmProjects/spine_article/apache-maven-3.9.6/bin"
-    current_path = os.environ.get('PATH', '')
-    new_path = maven_bin_path + os.pathsep + current_path
-    os.environ['PATH'] = new_path
-    ij = imagej.init(r"G:\Documents\PycharmProjects\spine_article\Fiji.app")
-    deconvolve_folder = pathlib.Path(filename.stem / "Deconvolve")
-    deconvolve_folder.mkdir(parents=True, exist_ok=True)
-
-    args = {}
-
-    image_name = pathlib.Path(filename)
-
-    macro = f"""
-    open("{image_name}")
-    run("Iterative Deconvolve 3D", "image={image_name} point={image_name} output=Deconvolved show perform wiener=0.000 low=1 z_direction=0.3 maximum={number} terminate=0.010")
-    selectWindow("Deconvolved_{number}");
-    saveAs("Tiff", "{deconvolve_folder}/{image_name.stem}_Deconvolved{number}.tif");
-    """
-
-    print('start')
-    ij.py.run_macro(macro, args)
-    print('end')
-
-
 @njit
 def numba_segmentation(image: np.ndarray):
     """
