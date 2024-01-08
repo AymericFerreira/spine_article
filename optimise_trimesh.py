@@ -87,7 +87,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
         filterFile.write(pymeshlab_filter)
 
     load_filter_and_apply_to_mesh(
-        ms, mesh_filename, output_mesh_filename
+        ms, mesh_filename, output_mesh_filename, filter_file_name.__str__()
     )
     if new_simplified_mesh := remove_small_meshes_from_path(
             output_mesh_filename
@@ -134,7 +134,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
 
         ms = ml.MeshSet()
         load_filter_and_apply_to_mesh(
-            ms, mesh_filename, output_mesh_filename
+            ms, mesh_filename, output_mesh_filename, filter_file_name.__str__()
         )
         if output_mesh_filename.exists():
             if new_simplified_mesh := remove_small_meshes_from_path(
