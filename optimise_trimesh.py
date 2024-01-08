@@ -31,7 +31,9 @@ def smoothing_via_pymeshlab(mesh_filename, laplacien=1):
 
     with open(f'{filter_file_name}', 'w') as filterFile:
         filterFile.write(pymeshlab_filter)
-    ms.load_filter_script("filter.mlx")
+    # ms.load_filter_script("filter.mlx")
+    print(f"Filter file name {filter_file_name}")
+    ms.load_filter_script(filter_file_name)
     ms.apply_filter_script()
     ms.save_current_mesh(output_mesh_filename.__str__())
 
@@ -98,7 +100,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
             )
         )
 
-        filter = f"""
+        meshlab_filter = f"""
             <!DOCTYPE FilterScript>
             <FilterScript>
              <filter name="Simplification: Quadric Edge Collapse Decimation">
@@ -128,7 +130,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
         )
 
         with open(f'{filter_file_name}', 'w') as filterFile:
-            filterFile.write(filter)
+            filterFile.write(meshlab_filter)
 
         ms = ml.MeshSet()
         load_filter_and_apply_to_mesh(
@@ -147,7 +149,7 @@ def remeshing_via_pymeshlab(mesh_filename, laplacien=2):
                 )
 
 
-def load_filter_and_apply_to_mesh(ms, mesh_filename, output_mesh_filename):
+def load_filter_and_apply_to_mesh(ms, mesh_filename, output_mesh_filename, filter_file_name='filter.mlx'):
     """
     Loads a mesh, applies a filter script to it, and saves the modified mesh.
 
@@ -160,7 +162,8 @@ def load_filter_and_apply_to_mesh(ms, mesh_filename, output_mesh_filename):
     output_mesh_filename (pathlib.Path): The path where the modified mesh will be saved.
     """
     ms.load_new_mesh(mesh_filename.__str__())
-    ms.load_filter_script('filter.mlx')
+    ms.load_filter_script(filter_file_name)
+    print(f"Filter file name {filter_file_name}")
     ms.apply_filter_script()
     ms.save_current_mesh(output_mesh_filename.__str__())
 
