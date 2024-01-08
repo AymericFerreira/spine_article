@@ -5,9 +5,9 @@ import numpy as np
 import os
 import pandas as pd
 import re
-from spineCrawler import parser, get_filepaths
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import pathlib
 from draw import plot_3d_scatter_with_color_and_gravity_center_and_gravity_median, plot_3d_scatter_fixed, plot_frequency
 from importlib.util import find_spec
 
@@ -15,6 +15,93 @@ try:
     import pymesh
 except ImportError:
     print("Pymesh not installed, it is optional and code works without it.")
+
+
+def parser(filename):
+    """
+        Parses a filename to extract biological data identifiers.
+
+        This function extracts identifiers like animal number, slice number, cell number, etc., from a given
+        filename using regular expressions. It handles different naming conventions and special cases within the filename.
+        Please note that this parser is for our filename and most likely you should adjust to your own filenames.
+
+        Parameters:
+        filename (str): The filename to be parsed.
+
+        Returns:
+        tuple: A tuple containing parsed elements like animal number, slice number, etc.
+        """
+    filename = filename.__str__()
+    # animal_parser = re_parser("Deconvolved_5_(.+?)_", filename)
+    animal_parser = re_parser("Animal(.+?)_", filename)
+    if not animal_parser:
+        print("No animal", filename)
+    slice_parser = re_parser("slice(.+?)_", filename)
+    cell_parser = re_parser("cell(.+?)_", filename)
+    dendrite_parser = re_parser("dendrite(.+?)_", filename) or \
+                      re_parser("dendritic_(.+?)_", filename)
+    shf_parser = "No"
+    if "shf" in filename.split("_")[-1]:
+        shf_parser = "shf"
+    if "SHF" in filename.split("_")[-1]:
+        shf_parser = "SHF"
+    if shf_parser != "No":
+        spine_parser = re_parser("spine(.+?)", filename.split('_')[-2])
+    else:
+        spine_parser = re_parser("spine(.+?)", filename.split('_')[-1])
+    return animal_parser, slice_parser, cell_parser, dendrite_parser, spine_parser, shf_parser
+
+
+def re_parser(reg_expression, text, case_sensitive=False):
+    """
+    Parses a string using a regular expression to extract specific information.
+
+    This function applies a regular expression to a given text to extract a specific part of the string.
+    It can operate in either case-sensitive or case-insensitive mode.
+
+    Parameters:
+    reg_expression (str): The regular expression used for parsing.
+    text (str): The text to apply the regular expression to.
+    case_sensitive (bool, optional): Whether the search should be case-sensitive. Default is False.
+
+    Returns:
+    str or None: The extracted part of the string if a match is found, otherwise None.
+    """
+    if not case_sensitive:
+        reg_parser = re.search(reg_expression, text, flags=re.IGNORECASE)
+    else:
+        reg_parser = re.search(reg_expression, text)
+    if reg_parser:
+        return (text[reg_parser.regs[1][0]:reg_parser.regs[1][1]]).replace("_", "")
+
+
+def get_filepaths(directory, condition=None, pathlib_bool=True):
+    """
+        Generates a list of file paths in a directory tree.
+        This function walks through a directory tree, either top-down or bottom-up, to generate file paths.
+        It can optionally filter files based on a condition, such as a substring in the filename.
+        Parameters:
+        directory (str): The directory to walk through.
+        condition (str, optional): A condition to filter the files. Default is None.
+        pathlibBool (bool, optional): Whether to return paths as pathlib.Path objects. Default is True.
+        Returns:
+        list: A list of file paths, either as strings or pathlib.Path objects, based on 'pathlibBool'.
+    """
+    file_paths = []
+
+    for root, directories, files in os.walk(directory):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            if (
+                    condition in filename
+                    and pathlib_bool
+                    or not condition
+                    and pathlib_bool
+            ):
+                file_paths.append(pathlib.Path(filepath))
+            elif condition in filename or not condition:
+                file_paths.append(filepath)
+    return file_paths
 
 
 def pymesh_to_trimesh(mesh):
