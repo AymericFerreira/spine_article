@@ -16,7 +16,8 @@ bioRxiv 2023.07.20.549882; doi: https://doi.org/10.1101/2023.07.20.549882
 5. [Extraction of the spines](#Extraction-of-the-spines)
 6. [Analysis of the spines](#Analysis-of-the-spines)
 7. [Analysis pipeline](#Analysis-pipeline)
-8. [Notes](#Notes)
+8. [Workflow](#Workflow)
+9. [Notes](#Notes)
 
 # Install
 
