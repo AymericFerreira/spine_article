@@ -1,6 +1,6 @@
 # Spine reconstruction and analysis pipeline
 
-This project is the code used for the analysis of the paper : Distinct forms of structural plasticity of adult-born interneuron spines induced by different odor learning paradigms. Available here : https://www.biorxiv.org/content/10.1101/2023.07.20.549882v1
+This project is the code used for the analysis of the paper : Distinct forms of structural plasticity of adult-born interneuron spines in the mouse olfactory bulb induced by different odor learning paradigms. Available here : https://www.biorxiv.org/content/10.1101/2023.07.20.549882v1
 The reconstruction pipeline as well as the analysis pipeline was used to study dendritic spines but feel free to test it on your data. Please, if you use this code, cite us :
 ```
  Distinct forms of structural plasticity of adult-born interneuron spines induced by different odor learning paradigms
